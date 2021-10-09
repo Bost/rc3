@@ -1,13 +1,18 @@
 #lang racket
+
+;; read-syntax is a magic name recognized by racket
 (provide (rename-out (basic-read-syntax read-syntax)))
 (require syntax/readerr)
 
 (define (basic-read-syntax src in)
   (datum->syntax
    #f
-   `(module basic racket
+   `(module
+        basic  ; A new module called `basic` is created and
+        racket ; it imports racket.
       (require "basic.rkt")
       (basic
+       ; splice-embedding of ...
        ,@(parse-program src in)))))
 
 (define (parse-program src in)
@@ -16,6 +21,13 @@
       '()
       (cons line (parse-program src in))))
 
+;; src: context information about what file this code resides in. The value
+;; is later provided by the racket system, i.e. can be #f when called from REPL
+;; (see below).
+;; in: input-port - a reference to an open file "or something like that"[sic.]
+;; e.g.:
+;;   (parse-line #f (open-input-string "10 PRINT A + 1"))
+;; => '(10 (print (+ A 1)))
 (define (parse-line src in)
   (regexp-try-match #px"^\\s+" in)
   (if (eof-object? (peek-char in))
@@ -26,6 +38,7 @@
         `(,line-number ,command))))
 
 (define (next-token src in (peek? #f))
+  (printf "in~a~n" in)
   (skip-whitespace in)
   (define match (if peek? regexp-match-peek regexp-try-match))
   (cond
@@ -40,7 +53,7 @@
      'comma)
     ((match #rx"^[0-9]+" in)
      => (lambda (match)
-          (string->number (bytes->string/utf-8 (car match)))))     
+          (string->number (bytes->string/utf-8 (car match)))))
     ((match #rx"^[a-zA-Z]+$?" in)
      => (lambda (match)
           (string->symbol (bytes->string/utf-8 (car match)))))
@@ -48,12 +61,19 @@
      => (lambda (match)
           (bytes->string/utf-8 (cadr match))))
     ((eof-object? (peek-char in))
-     eof)
+     (begin
+       (printf "eof-object?~n")
+       eof))
     ((equal? #\newline (peek-char in))
-     (read-char in)
-     eof)
+     (begin
+       ;; we're at the end of the file
+       (printf "newline~n")
+       (read-char in)
+       eof))
     ((match "^$" in)
-     eof)
+     (begin
+       (printf "match ^$~n")
+       eof))
     (else
      (complain src in "unknown lexeme"))))
 

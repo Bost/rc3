@@ -1,5 +1,9 @@
 #lang reader "basic-reader.rkt"
 10 A = 1
 20 PRINT A
+21 A = A + 1
+22 PRINT 1
+23 PRINT 1
+24 PRINT 1
 30 A = A + 1
-40 IF A < 100 THEN GOTO 20 ELSE PRINT "DONE"
+40 IF A < 10 THEN GOTO 20 ELSE PRINT "DONE"
