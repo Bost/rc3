@@ -37,7 +37,13 @@
 |#
 
 (define-for-syntax (make-line-name context line-number)
-  (format-id context "line-~a" (syntax-e line-number)))
+  (format-id context "line-~a"
+             (begin
+               (printf "Defining line-~a\n" (syntax->datum line-number))
+               ;; Unwrap the immediate datum structure from the `line-number`
+               ;; syntax object, returns nested syntax structure (if any) in
+               ;; place
+               (syntax-e line-number))))
 
 (define-syntax (basic form)
   (syntax-parse form
@@ -51,6 +57,7 @@
                    #`(define #,variable #f))
                  (free-id-set->list id-set))
          #,@(map (lambda (line-number next-line-number command)
+                   #;(printf "command: ~a~n" command)
                    (define name (make-line-name #`basic line-number))
                    (define call-next-line
                      (if next-line-number
@@ -98,9 +105,9 @@
      (collect-variables #`then id-set)
      (collect-variables #`else id-set))
     (_ (void))))
-    
 
-(basic
+
+#;(basic
  (5 (:= a 42)) ; A = 42
  (7 (if (= a 42) (:= b 1) (:= b 2)))
  (8 (gosub 1000))

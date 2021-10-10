@@ -29,7 +29,11 @@
 ;;   (parse-line #f (open-input-string "10 PRINT A + 1"))
 ;; => '(10 (print (+ A 1)))
 (define (parse-line src in)
-  (regexp-try-match #px"^\\s+" in)
+  ;; if the match fails, no characters are read and discarded from the `in`
+  (regexp-try-match
+   ;; #px slightly extends available #rx syntax patterns
+   #px"^\\s+"
+   in)
   (if (eof-object? (peek-char in))
       eof
       (let ()
@@ -38,39 +42,43 @@
         `(,line-number ,command))))
 
 (define (next-token src in (peek? #f))
-  (printf "in~a~n" in)
+  ;; (printf "[next-token] in: ~a~n" in)
   (skip-whitespace in)
-  (define match (if peek? regexp-match-peek regexp-try-match))
+  (define match-fn (if peek? regexp-match-peek regexp-try-match))
   (cond
-    ((match #rx"^(PRINT|GOTO|GOSUB|RETURN|IF|THEN|ELSE|\\*|\\+|-|/|=|<=|>=|<|>)" in)
+    ((match-fn #rx"^(PRINT|GOTO|GOSUB|RETURN|IF|THEN|ELSE|\\*|\\+|-|/|=|<=|>=|<|>)" in)
      => (lambda (match)
           (string->symbol (bytes->string/utf-8 (car match)))))
-    ((match #rx"^\\(" in)
+    ((match-fn #rx"^\\(" in)
      'open-paren)
-    ((match #rx"^\\)" in)
+    ((match-fn #rx"^\\)" in)
      'closed-paren)
-    ((match #rx"^," in)
+    ((match-fn #rx"^," in)
      'comma)
-    ((match #rx"^[0-9]+" in)
+    ((match-fn #rx"^[0-9]+" in)
      => (lambda (match)
           (string->number (bytes->string/utf-8 (car match)))))
-    ((match #rx"^[a-zA-Z]+$?" in)
+    ;; match BASIC-identifier
+    ((match-fn #rx"^[a-zA-Z]+$?" in)
      => (lambda (match)
           (string->symbol (bytes->string/utf-8 (car match)))))
-    ((match #rx"\"([^\"]+)\"" in)
+    ;; greedy match everything surrounded by parentheses `(`, `)`
+    ((match-fn #rx"\"([^\"]+)\"" in)
      => (lambda (match)
-          (bytes->string/utf-8 (cadr match))))
+          (bytes->string/utf-8
+           ;; get the second item in the list returned by the match-fn
+           (cadr match))))
     ((eof-object? (peek-char in))
      (begin
        (printf "eof-object?~n")
        eof))
     ((equal? #\newline (peek-char in))
      (begin
-       ;; we're at the end of the file
+       ;; we're at the end of the input BASIC-file
        (printf "newline~n")
        (read-char in)
        eof))
-    ((match "^$" in)
+    ((match-fn "^$" in)
      (begin
        (printf "match ^$~n")
        eof))
@@ -180,5 +188,3 @@
        (complain src in "no closing parenthesis"))
      expr)
     (else next)))
-
-
