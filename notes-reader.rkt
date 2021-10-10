@@ -1,6 +1,9 @@
 #lang racket
-(provide (rename-out (notes-read-syntax read-syntax)))
-(require syntax/readerr)
+(provide (rename-out (notes-read-syntax read-syntax))
+         parse-notes)
+(require syntax/readerr
+         srfi/13 ;; string-contains
+         )
 
 (define (notes-read-syntax src in)
   (datum->syntax
@@ -10,15 +13,16 @@
       (notes
        ,@(parse-notes src in)))))
 
+;; `src` - context information about what file this code resides in. The value
+;; is provided by the racket system
+;; `in` - input-port - a reference to an open file "or something like that"[sic.]
+;; (parse-notes src in)
 (define (parse-notes src in)
   (define note (parse-note src in))
   (if (eof-object? note)
       '()
       (cons note (parse-notes src in))))
 
-;; `src` - context information about what file this code resides in. The value
-;; is provided by the racket system
-;; `in` - input-port - a reference to an open file "or something like that"[sic.]
 (define (parse-note src in)
   (regexp-try-match #px"^\\s+" in)
   (if (eof-object? (peek-char in))
@@ -40,11 +44,26 @@
   (skip-whitespace in)
   (define match-fn (if peek? regexp-match-peek regexp-try-match))
   (cond
-    ((match-fn #rx"[^\n]*" in)
+    ;; note is a single line:
+    #;((match-fn #rx"[^\n]*" in)
      #;(match-fn #rx".*?\n" in)
      => (lambda (match)
-          #;(printf "next-token: ~a~n" (car match))
-          (car match)))
+          (let ((fst (car match)))
+            (printf "next-token: string? ~a; bytes?: ~a; ~a\n" (string? fst) (bytes? fst) fst)
+            fst)))
+
+    ;; note is a block of lines
+    ((match-fn #rx".*?(\n\n|\n$|$)" in)
+     => (lambda (match-raw)
+          (let* ((match (map bytes->string/utf-8 match-raw))
+                 (fst (car match))
+                 (snd (cadr match)))
+            ((compose
+              string->bytes/utf-8
+              (curry substring fst 0)
+              string-contains)
+             fst snd))))
+
     ((eof-object? (peek-char in))
      eof)
     ((equal? #\newline (peek-char in))
@@ -69,4 +88,3 @@
      `(found ,@(parse-arguments src in)))
     (#t
      first-token)))
-
