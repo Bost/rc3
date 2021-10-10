@@ -1,9 +1,7 @@
 #lang racket
 (provide (rename-out (notes-read-syntax read-syntax))
          parse-notes)
-(require syntax/readerr
-         srfi/13 ;; string-contains
-         )
+(require syntax/readerr)
 
 (define (notes-read-syntax src in)
   (datum->syntax
@@ -40,6 +38,12 @@
   (define-values (line col pos) (port-next-location in))
   (raise-read-error msg src line col pos 1))
 
+(define (last-index-of str substr)
+  (cdar
+   (regexp-match-positions
+    (regexp (format "(~a).*" substr))
+    str)))
+
 (define (next-token-x src in (peek? #f))
   (skip-whitespace in)
   (define match-fn (if peek? regexp-match-peek regexp-try-match))
@@ -60,8 +64,11 @@
                  (snd (cadr match)))
             ((compose
               string->bytes/utf-8
-              (curry substring fst 0)
-              string-contains)
+              (lambda (substr-index)
+                (if (zero? substr-index)
+                    fst
+                    (substring fst 0 substr-index)))
+              last-index-of)
              fst snd))))
 
     ((eof-object? (peek-char in))
