@@ -19,7 +19,11 @@
   (define note (parse-note src in))
   (if (eof-object? note)
       '()
-      (cons note (parse-notes src in))))
+      (let* ((pn (parse-notes src in)))
+        #;(printf "note: ~a\n" note)
+        #;(printf "pn: ~a\n" pn)
+        #;(printf "cons: ~s\n" (cons note pn))
+        (cons note pn))))
 
 (define (parse-note src in)
   (regexp-try-match #px"^\\s+" in)
@@ -27,8 +31,10 @@
       eof
       (let ()
         (define note-content (parse-note-content src in))
+        #;(printf "note-content: ~a\n" note-content)
         note-content
-        ;; `(,note-content)
+        ;; `(note-content)
+        #;`(,note-content)
         )))
 
 (define (skip-whitespace in)
@@ -39,10 +45,15 @@
   (raise-read-error msg src line col pos 1))
 
 (define (last-index-of str substr)
-  (cdar
-   (regexp-match-positions
-    (regexp (format "(~a).*" substr))
-    str)))
+  (let* ((positions (regexp-match-positions
+                     (regexp (format "(~a).*" substr))
+                     str))
+         (end (if positions (cdar positions) -1))
+         (lio (if positions (- end (string-length substr)) -1)))
+    #;(printf "(define positions ~s)\n" positions)
+    #;(printf "(define end ~s)\n" end)
+    #;(printf "last-index-of: ~s\n" lio)
+    lio))
 
 (define (next-token-x src in (peek? #f))
   (skip-whitespace in)
@@ -59,17 +70,22 @@
     ;; note is a block of lines
     ((match-fn #rx".*?(\n\n|\n$|$)" in)
      => (lambda (match-raw)
-          (let* ((match (map bytes->string/utf-8 match-raw))
+          (let* ((match (map
+                         #;identity
+                         bytes->string/utf-8 match-raw))
                  (fst (car match))
                  (snd (cadr match)))
+            #;(printf "(define fst ~s)\n" fst)
+            #;(printf "(define snd ~s)\n" snd)
             ((compose
               string->bytes/utf-8
+              #;(lambda (r) (printf "(define r ~s)\n" r) r)
               (lambda (substr-index)
-                (if (zero? substr-index)
-                    fst
-                    (substring fst 0 substr-index)))
-              last-index-of)
-             fst snd))))
+                #;(printf "substr-index: ~a\n" substr-index)
+                (if (positive-integer? substr-index)
+                    (substring fst 0 substr-index)
+                    fst)))
+             (last-index-of fst snd)))))
 
     ((eof-object? (peek-char in))
      eof)

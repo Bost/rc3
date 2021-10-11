@@ -25,8 +25,13 @@
 ;; echo '#lang reader "notes-reader.rkt"' | cat - nds.org > nds.rkt
 
 (define t
-  "aaa
-bbb
+  "a b c
+
+a x c
+
+aa bb cc
+
+aaa bbb ccc
 ")
 (define in
   (open-input-file (files))
@@ -35,9 +40,12 @@ bbb
 (define src #f)
 
 (define exp `(notes ,@(cons (pattern) (parse-notes src in))))
-
+#;exp
 ;; the expression must be evaluated in a namespace.
 ;; Thanks to https://stackoverflow.com/q/16266934 for a hint
 (define-namespace-anchor a)
 (define ns (namespace-anchor->namespace a))
-(printf "~a" (eval exp ns))
+(printf "~a\n" (string-join (eval exp ns) "\n\n"))
+
+
+

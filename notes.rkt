@@ -21,21 +21,40 @@
     ((notes
       text:string
       note:expr ...)
-     #`(begin
-         #;#,@((compose
-             (curry map number->string)
-             (curry filter (lambda (n) (odd? n))))
-               '(1 2 3 4))
-         #,@((compose
-              (curry map bytes->string/utf-8)
-              (curry filter (curry regexp-match
-                                   #;#px"^.*labor.*"
-                                   ;; #rx"^.*labor.*"
-                                   (regexp (format "^.*~a.*"
-                                                   (syntax->datum #`text)))
-                                   ))
-              (curry map syntax->datum))
-             (syntax->list #`(note ...)))))))
+     (begin
+       #;(printf "(syntax->list #`(note ...)): ~a\n" (syntax->list #`(note ...)))
+       #;(printf "text: ~a\n" (syntax->datum #`text))
+       #;(printf "filter: ~a\n" (regexp (format "^.*~a.*"
+                                                (syntax->datum #`text))))
+       #`(begin
+           #;'(1 2 3 4)
+           #;'(#,@((compose
+                 (curry map number->string)
+                 (curry filter (lambda (n) (odd? n))))
+                '(1 2 3 4)))
+           #;(define f (compose
+                      (curry map bytes->string/utf-8)
+                      #;(curry filter (curry regexp-match
+                                             #;#px"^.*labor.*"
+                                             ;; #rx"^.*labor.*"
+                                             (regexp (format "^.*~a.*"
+                                                             (syntax->datum #`text)))
+                                             ))
+                      (curry map syntax->datum)))
+           '(#,@((compose
+                 #;(lambda (r4) (printf "r4: list? ~s\n" (list? r4)) r4)
+                 #;(lambda (r3) (printf "r3: ~s\n" r3) r3)
+                 (curry map bytes->string/utf-8)
+                 #;(lambda (r2) (printf "r2: ~s\n" r2) r2)
+                 (curry filter (curry regexp-match
+                                      #;#px"^.*labor.*"
+                                      ;; #rx"^.*labor.*"
+                                      (regexp (format "^.*~a.*"
+                                                      (syntax->datum #`text)))
+                                      ))
+                 #;(lambda (r1) (printf "r1: ~s\n" r1) r1)
+                 (curry map syntax->datum))
+                (syntax->list #`(note ...)))))))))
 
 #|
 (define t1
