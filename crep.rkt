@@ -55,29 +55,45 @@ E.g.:
 (define add-src-location-info #f)
 (define-namespace-anchor a)
 
+;; TODO implement interleave
+;; (interleave (repeat "a") [1 2 3])
+;; =>("a" 1 "a" 2 "a" 3)
+;; (require racket/list)
+(define (interpose elem ls)
+  ;; TODO implement tail-call version of `interpose`; see also string-join
+  (if (or (empty? (cdr ls)) (empty? ls))
+      ls
+      (append (list (car ls) elem) (interpose elem (cdr ls)))))
+
 (define (colorize ls pattern)
   (match ls
     [(list) (color-display "")]
     [(list l) (color-display l)]
     [_
      (let ((txt (car ls)))
-       #;(printf "~s\n" 'else)
        (color-display txt)
        (with-colors 'red (lambda () (color-display pattern)))
        (colorize (cdr ls) pattern))]))
 
 ((compose
-  #;(curry printf "~a")
-  ;; if last elem is "" add the pattern put the (pattern) before it
-  (lambda (s)
-    (let* ((ptrn (pattern))
-           ;; TODO use regexp-match* instead of regexp-split.
-           ;; e.g. (regexp-match* #rx"(?i:x*)" "12X4x6")
-           ;; TODO do not match pattern in the filename
-           (lst (regexp-split (regexp (format "(?~a:~a)" (case-sensitivity) ptrn))
-                              s)))
-      (colorize lst ptrn)))
-  (lambda (strs) (string-join strs "\n"))
+  (lambda (_) (display ""))
+  (curry map
+         (lambda (f-strs)
+           (let ((strs (cdr f-strs)))
+             (unless (empty? strs)
+               (let* ((s (string-join strs "\n"))
+                      (ptrn (pattern))
+                      ;; TODO use regexp-match* instead of regexp-split.
+                      ;; e.g. (regexp-match* #rx"(?i:x*)" "12X4x6")
+                      (lst (regexp-split (regexp
+                                          (format "(?~a:~a)"
+                                                  (case-sensitivity) ptrn))
+                                         s)))
+                 (with-colors 'white (lambda () (color-displayln (car f-strs))))
+                 (colorize lst ptrn)
+                 (printf "\n\n")))
+             strs)))
+  #;(lambda (strs) (string-join strs "\n"))
   (curry map (lambda (f)
                (define inf (open-input-file f) #;(open-input-string t))
                (define exp
@@ -90,6 +106,6 @@ E.g.:
                (define ns (namespace-anchor->namespace a))
                (define strs (string-join (eval exp ns) "\n\n"))
                #;(close-input-port inf)
-               (format "~a\n~a\n" f strs)))
+               (list f strs)))
   (curry filter (curry string<? "")))
  (files))
