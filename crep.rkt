@@ -40,6 +40,8 @@ E.g.:
                       ;; `files` was initialized to be '()
                       (append (files) (list fs)))]
    #:once-each
+   ;; TODO parameterize displayed color
+   ;; TODO check if the case-sensitivity value is allowed
    [("-c" "--case-sensitivity") cs
                                 (csd)
                                 (case-sensitivity cs)]
@@ -69,6 +71,9 @@ E.g.:
   ;; if last elem is "" add the pattern put the (pattern) before it
   (lambda (s)
     (let* ((ptrn (pattern))
+           ;; TODO use regexp-match* instead of regexp-split.
+           ;; e.g. (regexp-match* #rx"(?i:x*)" "12X4x6")
+           ;; TODO do not match pattern in the filename
            (lst (regexp-split (regexp (format "(?~a:~a)" (case-sensitivity) ptrn))
                               s)))
       (colorize lst ptrn)))
