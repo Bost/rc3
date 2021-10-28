@@ -20,6 +20,7 @@
   (syntax-parse form
     ((notes
       text:string
+      case-sensitivity:string
       note:expr ...)
      (begin
        #;(printf "(syntax->list #`(note ...)): ~a\n" (syntax->list #`(note ...)))
@@ -47,11 +48,10 @@
                  (curry map bytes->string/utf-8)
                  #;(lambda (r2) (printf "r2: ~s\n" r2) r2)
                  (curry filter (curry regexp-match
-                                      #;#px"^.*labor.*"
-                                      ;; #rx"^.*labor.*"
-                                      (regexp (format "^.*~a.*"
-                                                      (syntax->datum #`text)))
-                                      ))
+                                      #;#px"^.*labor.*" #;#rx"^.*labor.*"
+                                      (regexp (format "(?~a:^.*~a.*)"
+                                                      (syntax->datum #`case-sensitivity)
+                                                      (syntax->datum #`text)))))
                  #;(lambda (r1) (printf "r1: ~s\n" r1) r1)
                  (curry map syntax->datum))
                 (syntax->list #`(note ...)))))))))
