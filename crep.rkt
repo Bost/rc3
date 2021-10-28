@@ -18,9 +18,9 @@
 
 (define csd (format "case-sensitive `~a`~a or case-insensitive `~a`~a search."
                     case-sensitive
-                    (if (eq? case-sensitive (case-sensitivity)) " (default)" "")
+                    (if (equal? case-sensitive (case-sensitivity)) " (default)" "")
                     case-insensitive
-                    (if (eq? case-sensitive (case-sensitivity)) "" " (default)")))
+                    (if (equal? case-sensitive (case-sensitivity)) "" " (default)")))
 
 ;; Thanks to https://jackwarren.info/posts/guides/racket/racket-command-line/
 (define parser
